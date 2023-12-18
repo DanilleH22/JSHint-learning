@@ -5,9 +5,24 @@ const resultsModal = new bootstrap.Modal(document.getElementById("resultsModal")
 document.getElementById("status").addEventListener("click", e => getStatus(e));
 document.getElementById("submit").addEventListener("click", e => postForm(e));
 
-async function postForm(e) {
+function processOptions(form) {
+    let optArray = [];
 
-    const form = new FormData(document.getElementById("checksform"));
+    for (let entry of form.entries()) {
+        if (entry[0] === "options") {
+            optArray.push(entry[1]);
+        }
+    }
+    form.delete("options");
+
+    form.append("options", optArray.join());
+
+    return form;
+}
+
+
+async function postForm(e) {
+    const form = processOptions(new FormData(document.getElementById("checksform")));
 
     const response = await fetch(API_URL, {
         method: "POST",
@@ -23,6 +38,7 @@ async function postForm(e) {
     if (response.ok) {
         displayErrors(data);
     } else {
+        displayExceptions(data);
         throw new Error(data.error);
     }
 
@@ -43,7 +59,7 @@ function displayErrors(data) {
     }
     document.getElementById("resultsModalTitle").innerText = heading;
     document.getElementById("results-content").innerHTML = results;
-    resultsModal.show()
+    resultsModal.show();
 }
 
 async function getStatus(e) {
@@ -56,6 +72,7 @@ async function getStatus(e) {
     if (response.ok) {
         displayStatus(data.expiry);
     } else {
+        displayExceptions(data);
         throw new Error(data.error);
     }
 }
@@ -65,6 +82,19 @@ function displayStatus(data) {
     let heading = "API key status";
     let results = `<div>Your key is valid until</div>`;
     results += `<div class="key-status">${data.expiry}</div>`;
+
+    document.getElementById("resultsModalTitle").innerText = heading;
+    document.getElementById("results-content").innerHTML = results;
+
+    resultsModal.show();
+}
+
+function displayExceptions(data) {
+    let heading = "An Exception Occurred";
+
+    let results = `<div>The API resturned status ${data.status_code}</div>`;
+    results += `<div>Error number: <strong>${data.error_no}</strong></div>`;
+    results += `<div>Error text: <strong>${data.error}</strong></div>`;
 
     document.getElementById("resultsModalTitle").innerText = heading;
     document.getElementById("results-content").innerHTML = results;
